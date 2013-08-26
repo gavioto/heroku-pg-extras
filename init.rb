@@ -3,7 +3,7 @@ require File.expand_path('lib/heroku/command/pgbackups', File.dirname(__FILE__))
 
 class Heroku::Command::Pg < Heroku::Command::Base
 
-  # pg:cache_hit [DATABASE]
+  # pg:cache-hit [DATABASE]
   #
   # calculates your cache hit rate (effective databases are at 99% and up)
   #
@@ -22,13 +22,14 @@ class Heroku::Command::Pg < Heroku::Command::Base
 
     puts exec_sql(sql)
   end
+  alias_command "pg:cache-hit", "pg:cache_hit"
 
   def cachehit
-    puts "WARNING: pg:cachehit is deprecated. Use pg:cache_hit instead"
+    puts "WARNING: pg:cachehit is deprecated. Use pg:cache-hit instead"
     cache_hit
   end
 
-  # pg:index_usage [DATABASE]
+  # pg:index-usage [DATABASE]
   #
   # calculates your index hit rate (effective databases are at 99% and up)
   #
@@ -47,9 +48,10 @@ class Heroku::Command::Pg < Heroku::Command::Base
     )
     puts exec_sql(sql)
   end
+  alias_command "pg:index-usage", "pg:index_usage"
 
   def indexusage
-    puts "WARNING: pg:indexusage is deprecated. Use pg:index_usage instead"
+    puts "WARNING: pg:indexusage is deprecated. Use pg:index-usage instead"
     index_usage
   end
 
@@ -133,7 +135,7 @@ class Heroku::Command::Pg < Heroku::Command::Base
     puts exec_sql(sql)
   end
 
-  # pg:total_index_size [DATABASE]
+  # pg:total-index-size [DATABASE]
   #
   # show the total size of all indexes in MB
   #
@@ -146,8 +148,9 @@ class Heroku::Command::Pg < Heroku::Command::Base
 
     puts exec_sql(sql)
   end
+  alias_command "pg:total-index-size", "pg:total_index_size"
 
-  # pg:index_size [DATABASE]
+  # pg:index-size [DATABASE]
   #
   # show the size of indexes, descending by size
   #
@@ -163,8 +166,9 @@ class Heroku::Command::Pg < Heroku::Command::Base
 
     puts exec_sql(sql)
   end
+  alias_command "pg:index-size", "pg:index_size"
 
-  # pg:unused_indexes [DATABASE]
+  # pg:unused-indexes [DATABASE]
   #
   # Show unused and almost unused indexes, ordered by their size relative to
   # the number of index scans. Exclude indexes of very small tables (less than
@@ -187,8 +191,9 @@ class Heroku::Command::Pg < Heroku::Command::Base
 
     puts exec_sql(sql)
   end
+  alias_command "pg:unused-indexes", "pg:unused_indexes"
 
-  # pg:seq_scans [DATABASE]
+  # pg:seq-scans [DATABASE]
   #
   # show the count of seq_scans by table descending by order
   #
@@ -203,8 +208,9 @@ class Heroku::Command::Pg < Heroku::Command::Base
 
     puts exec_sql(sql)
   end
+  alias_command "pg:seq-scans", "pg:seq_scans"
 
-  # pg:long_running_queries [DATABASE]
+  # pg:long-running-queries [DATABASE]
   #
   # show all queries taking longer than five minutes ordered by duration
   # descending
@@ -233,6 +239,7 @@ class Heroku::Command::Pg < Heroku::Command::Base
 
     puts exec_sql(sql)
   end
+  alias_command "pg:long-running-queries", "pg:long_running_queries"
 
   # pg:bloat [DATABASE]
   #
@@ -304,7 +311,7 @@ class Heroku::Command::Pg < Heroku::Command::Base
     puts exec_sql(sql)
   end
 
-  # pg:vacuum_stats [DATABASE]
+  # pg:vacuum-stats [DATABASE]
   #
   # Show dead rows and whether an automatic vacuum is expected to be triggered
   #
@@ -351,6 +358,7 @@ class Heroku::Command::Pg < Heroku::Command::Base
     )
     puts exec_sql(sql)
   end
+  alias_command "pg:vacuum-stats", "pg:vacuum_stats"
 
   # pg:extensions [DATABASE]
   #
