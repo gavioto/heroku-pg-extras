@@ -38,7 +38,7 @@ class Heroku::Command::Pg < Heroku::Command::Base
   #
   # HIDDEN:
   def psqlcommandhelper
-    default_app_db = shift_argument
+    app_db = shift_argument
     command = shift_argument
 
     if command == "help"
@@ -47,6 +47,56 @@ class Heroku::Command::Pg < Heroku::Command::Base
       exec "heroku pg:#{command} #{app_db}"
     end
   end
+
+  # pg:fdwsql <prefix> <database>
+  #
+  # generate fdw install sql for database
+  def fdwsql
+    prefix = shift_argument
+    db_id  = shift_argument
+    attachment = generate_resolver.resolve(db_id, "DATABASE_URL")
+    uri = URI.parse(attachment.url)
+    puts "CREATE EXTENSION IF NOT EXISTS postgres_fdw;"
+    puts "DROP SERVER IF EXISTS #{prefix}_db;"
+    puts "CREATE SERVER #{prefix}_db
+            FOREIGN DATA WRAPPER postgres_fdw
+            OPTIONS (dbname '#{uri.path[1..-1]}', host '#{uri.host}');"
+    puts "CREATE USER MAPPING FOR CURRENT_USER
+            SERVER #{prefix}_db
+            OPTIONS (user '#{uri.user}', password '#{uri.password}');"
+
+
+    table_sql = %Q(
+  SELECT
+    'CREATE FOREIGN TABLE '
+    || quote_ident('#{prefix}_' || c.relname)
+    || '(' || array_to_string(array_agg(quote_ident(a.attname) || ' ' || t.typname), ', ') || ') '
+    || ' SERVER #{prefix}_db OPTIONS (table_name ''' || quote_ident(c.relname) || ''');'
+        FROM
+        pg_class c,
+        pg_attribute a,
+        pg_type t,
+        pg_namespace n
+        WHERE
+         a.attnum > 0
+         and a.attrelid = c.oid
+         and a.atttypid = t.oid
+         and  n.oid = c.relnamespace
+         and c.relkind in ('r', 'v')
+         AND n.nspname <> 'pg_catalog'
+         AND n.nspname <> 'information_schema'
+         AND n.nspname !~ '^pg_toast'
+         AND pg_catalog.pg_table_is_visible(c.oid)
+         group by c.relname
+         ORDER BY c.relname
+         ;
+
+    )
+    result = exec_sql_on_uri(table_sql, uri)
+    puts result.split(/\n/).grep(/CREATE/).join("\n")
+  end
+
+
   # pg:cache_hit [DATABASE]
   #
   # calculates your cache hit rate (effective databases are at 99% and up)
