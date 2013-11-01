@@ -17,6 +17,7 @@ class Heroku::Command::Pg < Heroku::Command::Base
 
     aliases = [
       ["pg", "heroku pg:psqlcommandhelper #{app_db} "],
+      ["fdw", "heroku pg:fdwsql "],
     ]
 
     #aliases.unshift ["help", "echo '#{aliases.map{|(name,_)| ":#{name}"}.join(', ') }'"]
@@ -25,7 +26,6 @@ class Heroku::Command::Pg < Heroku::Command::Base
       ENV["PGPASSWORD"] = uri.password
       ENV["PGSSLMODE"]  = 'require'
       cmd = "psql -U #{uri.user} -h #{uri.host} -p #{uri.port || 5432} #{set_commands} #{uri.path[1..-1]}"
-      puts cmd
       exec cmd
     rescue Errno::ENOENT
       output_with_bang "The local psql command could not be located"
@@ -48,13 +48,16 @@ class Heroku::Command::Pg < Heroku::Command::Base
     end
   end
 
-  # pg:fdwsql <prefix> <database>
+  # pg:fdwsql <prefix> <app::database>
   #
   # generate fdw install sql for database
   def fdwsql
     prefix = shift_argument
     db_id  = shift_argument
-    attachment = generate_resolver.resolve(db_id, "DATABASE_URL")
+    unless [prefix,db_id].all?
+      error("Usage fdwsql <prefix> <app::database>")
+    end
+    attachment = generate_resolver.resolve(db_id)
     uri = URI.parse(attachment.url)
     puts "CREATE EXTENSION IF NOT EXISTS postgres_fdw;"
     puts "DROP SERVER IF EXISTS #{prefix}_db;"
@@ -90,10 +93,10 @@ class Heroku::Command::Pg < Heroku::Command::Base
          group by c.relname
          ORDER BY c.relname
          ;
-
     )
     result = exec_sql_on_uri(table_sql, uri)
     puts result.split(/\n/).grep(/CREATE/).join("\n")
+    puts
   end
 
 
