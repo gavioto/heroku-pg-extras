@@ -3,6 +3,35 @@ require File.expand_path('lib/heroku/command/pgbackups', File.dirname(__FILE__))
 
 class Heroku::Command::Pg < Heroku::Command::Base
 
+
+  def psql
+    attachment = generate_resolver.resolve(shift_argument, "DATABASE_URL")
+    validate_arguments!
+
+    uri = URI.parse( attachment.url )
+
+    app_db = "#{app}::#{attachment.config_var}"
+
+    aliases = [
+      ["info",     "heroku pg:info #{app_db}"],
+      ["locks",    "heroku pg:locks #{app_db}"],
+      ["blocking", "heroku pg:blocking #{app_db}"],
+    ]
+
+    aliases.unshift ["help", "echo '#{aliases.map{|(name,_)| ":#{name}"}.join(', ') }'"]
+    set_commands = aliases.map{|(name,cmd)| '--set="' + name + '=\\\\! ' + cmd + '"'}.join(' ')
+    begin
+      ENV["PGPASSWORD"] = uri.password
+      ENV["PGSSLMODE"]  = 'require'
+      cmd = "psql -U #{uri.user} -h #{uri.host} -p #{uri.port || 5432} #{set_commands} #{uri.path[1..-1]}"
+      puts cmd
+      exec cmd
+    rescue Errno::ENOENT
+      output_with_bang "The local psql command could not be located"
+      output_with_bang "For help installing psql, see http://devcenter.heroku.com/articles/local-postgresql"
+      abort
+    end
+  end
   # pg:cache_hit [DATABASE]
   #
   # calculates your cache hit rate (effective databases are at 99% and up)
