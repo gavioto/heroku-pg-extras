@@ -2,23 +2,24 @@ require "heroku/command/base"
 require File.expand_path('lib/heroku/command/pgbackups', File.dirname(__FILE__))
 
 class Heroku::Command::Pg < Heroku::Command::Base
-
-
   def psql
-    attachment = generate_resolver.resolve(shift_argument, "DATABASE_URL")
+    db_id = shift_argument
+    attachment = generate_resolver.resolve(db_id, "DATABASE_URL")
     validate_arguments!
 
     uri = URI.parse( attachment.url )
 
-    app_db = "#{app}::#{attachment.config_var}"
+    if db_id =~ /\w+::\w+/
+      app_db = db_id
+    else
+      app_db = "#{app}::#{attachment.config_var}"
+    end
 
     aliases = [
-      ["info",     "heroku pg:info #{app_db}"],
-      ["locks",    "heroku pg:locks #{app_db}"],
-      ["blocking", "heroku pg:blocking #{app_db}"],
+      ["pg", "heroku pg:psqlcommandhelper #{app_db} "],
     ]
 
-    aliases.unshift ["help", "echo '#{aliases.map{|(name,_)| ":#{name}"}.join(', ') }'"]
+    #aliases.unshift ["help", "echo '#{aliases.map{|(name,_)| ":#{name}"}.join(', ') }'"]
     set_commands = aliases.map{|(name,cmd)| '--set="' + name + '=\\\\! ' + cmd + '"'}.join(' ')
     begin
       ENV["PGPASSWORD"] = uri.password
@@ -30,6 +31,20 @@ class Heroku::Command::Pg < Heroku::Command::Base
       output_with_bang "The local psql command could not be located"
       output_with_bang "For help installing psql, see http://devcenter.heroku.com/articles/local-postgresql"
       abort
+    end
+  end
+
+  # pg:psqlcommandhelper
+  #
+  # HIDDEN:
+  def psqlcommandhelper
+    default_app_db = shift_argument
+    command = shift_argument
+
+    if command == "help"
+      exec "heroku help pg"
+    else
+      exec "heroku pg:#{command} #{app_db}"
     end
   end
   # pg:cache_hit [DATABASE]
